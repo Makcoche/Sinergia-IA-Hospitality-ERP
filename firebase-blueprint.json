@@ -1,0 +1,142 @@
+{
+  "collections": {
+    "hotels": {
+      "id": "string",
+      "name": "string",
+      "type": "string",
+      "address": "string",
+      "description": "string",
+      "rating": "number"
+    },
+    "rooms": {
+      "id": "string",
+      "hotelId": "string",
+      "number": "string",
+      "name": "string",
+      "type": "string",
+      "capacity": "number",
+      "ratePerNight": "number",
+      "status": "string",
+      "amenities": "array"
+    },
+    "reservations": {
+      "id": "string",
+      "hotelId": "string",
+      "roomId": "string",
+      "guestName": "string",
+      "guestEmail": "string",
+      "checkIn": "string",
+      "checkOut": "string",
+      "status": "string",
+      "guestsCount": "number",
+      "totalAmount": "number",
+      "outstandingBalance": "number"
+    },
+    "guests": {
+      "id": "string",
+      "name": "string",
+      "email": "string",
+      "phone": "string",
+      "totalSpent": "number",
+      "reservationsCount": "number",
+      "preferences": "array",
+      "loyaltyTier": "string"
+    },
+    "charges": {
+      "id": "string",
+      "reservationId": "string",
+      "item": "string",
+      "amount": "number",
+      "timestamp": "string"
+    },
+    "tickets": {
+      "id": "string",
+      "hotelId": "string",
+      "roomId": "string",
+      "description": "string",
+      "priority": "string",
+      "status": "string",
+      "reportedDate": "string"
+    },
+    "channels": {
+      "id": "string",
+      "name": "string",
+      "icon": "string",
+      "status": "string",
+      "lastSync": "string",
+      "rateSyncMultiplier": "number",
+      "apiKey": "string",
+      "propertyId": "string",
+      "apiUrl": "string",
+      "webhookUrl": "string"
+    },
+    "pricingPlans": {
+      "id": "string",
+      "name": "string",
+      "description": "string",
+      "multiplier": "number",
+      "isActive": "boolean"
+    },
+    "messages": {
+      "id": "string",
+      "sender": "string",
+      "agentRole": "string",
+      "content": "string",
+      "timestamp": "string"
+    },
+    "housekeepingLogs": {
+      "id": "string",
+      "hotelId": "string",
+      "roomId": "string",
+      "roomNumber": "string",
+      "assignedStaff": "string",
+      "completedAt": "string",
+      "checklistCompleted": "array"
+    },
+    "maintenanceLogs": {
+      "id": "string",
+      "hotelId": "string",
+      "roomId": "string",
+      "roomNumber": "string",
+      "description": "string",
+      "priority": "string",
+      "resolvedAt": "string",
+      "assignedStaff": "string",
+      "repairCost": "number"
+    },
+    "staffShifts": {
+      "id": "string",
+      "hotelId": "string",
+      "staffName": "string",
+      "role": "string",
+      "date": "string",
+      "shiftType": "string",
+      "assignedNotes": "string"
+    },
+    "communityPosts": {
+      "id": "string",
+      "hotelId": "string",
+      "hotelName": "string",
+      "hotelType": "string",
+      "category": "string",
+      "title": "string",
+      "content": "string",
+      "likes": "array",
+      "commentsCount": "number",
+      "createdAt": "string",
+      "authorName": "string",
+      "authorRole": "string"
+    },
+    "communityComments": {
+      "id": "string",
+      "postId": "string",
+      "hotelId": "string",
+      "hotelName": "string",
+      "hotelType": "string",
+      "authorName": "string",
+      "authorRole": "string",
+      "content": "string",
+      "createdAt": "string"
+    }
+  }
+}

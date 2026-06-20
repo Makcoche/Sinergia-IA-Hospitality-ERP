@@ -1,4 +1,4 @@
-export type HotelType = 'hotel' | 'hostel' | 'apartment' | 'glamping' | 'finca';
+export type HotelType = string;
 
 export interface Hotel {
   id: string;
@@ -153,6 +153,33 @@ export interface StaffShift {
   date: string; // YYYY-MM-DD format
   shiftType: 'Mañana (06:00 - 14:00)' | 'Tarde (14:00 - 22:00)' | 'Noche (22:00 - 06:00)';
   assignedNotes: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  hotelId: string;
+  hotelName: string;
+  hotelType: string;
+  category: 'announcement' | 'event' | 'help' | 'alliance' | 'general';
+  title: string;
+  content: string;
+  likes: string[]; // List of hotelIds who liked this post
+  commentsCount: number;
+  createdAt: string; // ISO string
+  authorName: string;
+  authorRole: string;
+}
+
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  hotelId: string;
+  hotelName: string;
+  hotelType: string;
+  authorName: string;
+  authorRole: string;
+  content: string;
+  createdAt: string; // ISO string
 }
 
 

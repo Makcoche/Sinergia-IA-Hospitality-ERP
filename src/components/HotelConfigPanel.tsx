@@ -66,7 +66,7 @@ export default function HotelConfigPanel({
   // Sinergia New Property Creator panel
   const [showNewPropertyForm, setShowNewPropertyForm] = useState(false);
   const [newPropName, setNewPropName] = useState('');
-  const [newPropType, setNewPropType] = useState<HotelType>('glamping');
+  const [newPropType, setNewPropType] = useState<HotelType>('hotel');
   const [newPropAddress, setNewPropAddress] = useState('');
   const [newPropDescription, setNewPropDescription] = useState('');
   const [newPropRating, setNewPropRating] = useState<number>(4.8);
@@ -118,9 +118,7 @@ export default function HotelConfigPanel({
   const roomTypes = getRoomTypesByMembership();
 
   useEffect(() => {
-    if (roomTypes.length > 0) {
-      setRoomRegisterType(roomTypes[0].value);
-    }
+    setRoomRegisterType('Habitación');
   }, [activeUserProfile]);
 
   // Update form inputs when selected hotel shifts
@@ -171,7 +169,7 @@ export default function HotelConfigPanel({
     localStorage.setItem(`hotel_commission_${activeHotel.id}`, commissionPct.toString());
     localStorage.setItem(`hotel_amenities_${activeHotel.id}`, JSON.stringify(amenities));
 
-    setStatusMsg('🚀 ¡Configuración de empresa guardada con éxito en el sistema central!');
+    setStatusMsg('🚀 ¡Configuración de hotel guardada con éxito en el sistema central!');
     setTimeout(() => setStatusMsg(null), 3000);
   };
 
@@ -232,7 +230,7 @@ export default function HotelConfigPanel({
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-905">Configuración de Empresa & Sedes</h1>
+              <h1 className="text-lg font-bold text-slate-905">Configuración de Hospitalidad & Sedes</h1>
               <p className="text-xs text-slate-500">Maneja la información legal, operativa, y de marca para tus hoteles en Sinergia-PMS.</p>
             </div>
           </div>
@@ -262,7 +260,7 @@ export default function HotelConfigPanel({
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[9px] text-slate-500 font-bold uppercase font-mono block">Nombre de Empresa o Hotel</label>
+                  <label className="text-[9px] text-slate-500 font-bold uppercase font-mono block">Nombre del Hotel / Hospedaje</label>
                   <input 
                     type="text" 
                     value={name} 
@@ -274,17 +272,14 @@ export default function HotelConfigPanel({
                 
                 <div className="space-y-1">
                   <label className="text-[9px] text-slate-500 font-bold uppercase font-mono block">Categoría de Propiedad</label>
-                  <select 
+                  <input 
+                    type="text" 
                     value={type} 
-                    onChange={(e) => setType(e.target.value as HotelType)}
+                    onChange={(e) => setType(e.target.value)}
+                    placeholder="Ej: Hotel Boutique, Posada, Glamping"
                     className="w-full bg-white border border-slate-200 focus:border-indigo-505 rounded-lg p-2 text-xs"
-                  >
-                    <option value="glamping">⛺ Glamping / Domo de Lujo</option>
-                    <option value="hotel">🏨 Hotel Tradicional / Boutique</option>
-                    <option value="apartment">🏢 Lofts Ejecutivos / Apartamentos</option>
-                    <option value="finca">🏡 Finca de Turismo / Casa de Campo</option>
-                    <option value="hostel">🎒 Hostal Urbano / Social</option>
-                  </select>
+                    required 
+                  />
                 </div>
               </div>
 
@@ -488,15 +483,34 @@ export default function HotelConfigPanel({
                 {rooms.filter(r => r.hotelId === activeHotel.id).map(room => (
                   <div key={room.id} className="bg-white border border-slate-150 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-3xs hover:border-slate-300 transition-all">
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800">
-                          🛏️ Unidad / Núm: {room.number}
-                        </span>
-                        <span className="text-[9px] bg-indigo-50 border border-indigo-150 text-indigo-700 font-bold px-1.5 py-0.2 rounded uppercase">
-                          {room.type}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-400 font-mono">Nº:</span>
+                          <input 
+                            type="text"
+                            value={room.number}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRooms(prev => prev.map(r => r.id === room.id ? { ...r, number: val } : r));
+                            }}
+                            className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-xs font-bold text-slate-800 w-24"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-400 font-mono">Tipo:</span>
+                          <input 
+                            type="text"
+                            value={room.type}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRooms(prev => prev.map(r => r.id === room.id ? { ...r, type: val, name: `${val} ${room.number}` } : r));
+                            }}
+                            placeholder="Ej: Suite, Oficina"
+                            className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-150 text-indigo-750 font-bold px-1.5 py-0.5 rounded text-[10px] uppercase w-32"
+                          />
+                        </div>
                       </div>
-                      <span className="text-[9px] text-slate-400 font-mono italic block">Nombre: {room.name || 'Sin nombre'}</span>
+                      <span className="text-[9px] text-slate-400 font-mono italic block mt-1">Sede ID vinculada: {room.id}</span>
                     </div>
 
                     <div className="flex items-center gap-2.5">
@@ -578,19 +592,15 @@ export default function HotelConfigPanel({
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] text-slate-400 font-bold font-mono uppercase block">Estilo / Tipo Adquirido</label>
-                    <select 
+                    <label className="text-[9px] text-slate-400 font-bold font-mono uppercase block">Estilo / Tipo de Unidad</label>
+                    <input 
+                      type="text"
+                      placeholder="Ej: Habitación, Suite, Oficina, Carpa" 
                       id="input-new-room-type"
                       value={roomRegisterType}
                       onChange={(e) => setRoomRegisterType(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs text-slate-800 cursor-pointer font-sans"
-                    >
-                      {roomTypes.map(rt => (
-                        <option key={rt.value} value={rt.value}>
-                          {rt.label}
-                        </option>
-                      ))}
-                    </select>
+                      className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-xs text-slate-800 font-sans"
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] text-slate-400 font-bold font-mono uppercase block">Precio x Noche ($)</label>
@@ -730,17 +740,14 @@ export default function HotelConfigPanel({
                     
                     <div className="space-y-1">
                       <label className="text-[9.5px] text-emerald-800 font-bold uppercase font-mono block">Estilo Operativo</label>
-                      <select 
+                      <input 
+                        type="text" 
+                        required 
                         value={newPropType}
-                        onChange={(e) => setNewPropType(e.target.value as HotelType)}
+                        onChange={(e) => setNewPropType(e.target.value)}
+                        placeholder="Ej: Hotel, Hostal, Cabina, Glamping"
                         className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
-                      >
-                        <option value="glamping">⛺ Glamping / Domos</option>
-                        <option value="hotel">🏨 Hotel Tradicional</option>
-                        <option value="apartment">🏢 Lofts / Airbnb</option>
-                        <option value="finca">🏡 Finca / Recreacional</option>
-                        <option value="hostel">🎒 Hostal / Albergue</option>
-                      </select>
+                      />
                     </div>
                   </div>
 
@@ -856,13 +863,13 @@ export default function HotelConfigPanel({
             </div>
             
             <p className="text-[10.5px] text-slate-600 leading-normal">
-              Esta empresa está enlazada de forma segura al libro de contabilidad descentralizado de <strong className="text-indigo-650">Sinergia Real-Time Engine</strong>. Todas las reservas generadas desde el **Motor Web Autónomo** se bloquean con encriptación SSL y se guardan directamente en el PMS.
+              Este hotel está enlazado de forma segura al libro de contabilidad descentralizado de <strong className="text-indigo-650">Sinergia Real-Time Engine</strong>. Todas las reservas generadas desde el **Motor Web Autónomo** se bloquean con encriptación SSL y se guardan directamente en el PMS.
             </p>
 
             <div className="p-3 bg-white border border-indigo-100 rounded-xl flex items-center gap-3">
               <ShieldCheck className="w-8 h-8 text-indigo-700 bg-indigo-50 p-1.5 rounded-full shrink-0" />
               <div className="text-[9.5px] font-mono text-slate-500 leading-tight">
-                <div>Empresa: <span className="font-bold text-slate-850 truncate inline-block max-w-[120px] align-bottom">{name}</span></div>
+                <div>Hotel: <span className="font-bold text-slate-850 truncate inline-block max-w-[120px] align-bottom">{name}</span></div>
                 <div>Estado: <span className="text-emerald-600 font-black">✓ CONECTADA Y ACTIVA</span></div>
                 <div>Ref Licencia: <span className="text-indigo-750 font-bold">SIN-{activeHotel.id.toUpperCase()}</span></div>
               </div>

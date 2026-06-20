@@ -15,7 +15,13 @@ import BIRevenuePro from './components/BIRevenuePro';
 import SinergiaBlueprintHub from './components/SinergiaBlueprintHub';
 import HotelConfigPanel from './components/HotelConfigPanel';
 import SinergiaSaaSPanel from './components/SinergiaSaaSPanel';
+import SinergiaCommunityPanel from './components/SinergiaCommunityPanel';
 import { SinergiaLogo, SinergiaIcon } from './components/SinergiaIcon';
+import { 
+  seedCollectionIfEmpty, 
+  saveCollectionBulk, 
+  clearCollection 
+} from './firebase';
 import { 
   Building2, Sparkles, Wrench, Shield, CheckCircle, AlertOctagon, 
   DollarSign, Users, Globe, Home, Plane, Calendar, TrendingUp, 
@@ -87,71 +93,20 @@ interface UserProfile {
 const USER_PROFILES: UserProfile[] = [
   {
     id: 'user-admin',
-    name: 'Jose Urdaneta (Administrador Global SaaS / Desarrollador Root)',
-    email: 'admin@sinergia.com',
+    name: 'Jose Gregorio Urdaneta Guadama',
+    email: 'josegregoriourdanetaguadama@gmail.com',
     avatar: '👨‍💻',
     role: 'admin',
-    roleLabel: 'Desarrollador SaaS Root / SysAdmin',
+    roleLabel: 'Administrador Global SaaS / Desarrollador Root',
     membershipPlan: 'SaaS Global Enterprise Dev',
     membershipBadge: 'ROOT DEVELOPER',
     badgeBg: 'bg-indigo-950 border-indigo-700 text-amber-300',
     badgeTextColor: 'text-amber-300 border border-amber-400/30',
     allowedTabs: ['pms', 'channels', 'pricing', 'crm', 'booking', 'bi', 'blueprint'],
-    description: 'Acceso total a logs de servidores, esquema de base de datos relacional Postgres, y telemetría global del sistema.',
+    description: 'Acceso total de super-administrador global: PMS, Canales, CRM y Base de datos en la nube síncrona.',
     pin: '9999',
-    pinHint: 'PIN de Desarrollador / SysAdmin',
+    pinHint: 'PIN de Desarrollador / SysAdmin (por defecto 9999)',
     contractedHotelId: 'hotel-1'
-  },
-  {
-    id: 'user-owner',
-    name: 'Don Juan de Dios Urdaneta (CEO)',
-    email: 'owner@sinergia.com',
-    avatar: '🕴️',
-    role: 'owner',
-    roleLabel: 'Dueño de Franquicia Hoteles',
-    membershipPlan: 'Sinergia Enterprise Unlimited',
-    membershipBadge: 'MEMBRESÍA PLATINUM',
-    badgeBg: 'bg-amber-100 border-amber-300 text-amber-800',
-    badgeTextColor: 'text-amber-805 border-amber-400',
-    allowedTabs: ['pms', 'channels', 'pricing', 'crm', 'booking', 'bi', 'blueprint'],
-    description: 'Acceso analítico profundo de ingresos, análisis BI de Revenue, configuración de canales y control multi-sedes.',
-    pin: '1234',
-    pinHint: 'PIN de Gerencia General (CEO)',
-    contractedHotelId: 'hotel-1'
-  },
-  {
-    id: 'user-receptionist',
-    name: 'Marta Gómez (Receptionist)',
-    email: 'receptionist@sinergia.com',
-    avatar: '👩‍💼',
-    role: 'receptionist',
-    roleLabel: 'Recepcionista Jefe',
-    membershipPlan: 'Sinergia Standard PMS',
-    membershipBadge: 'MEMBRESÍA GOLD',
-    badgeBg: 'bg-slate-100 border-slate-300 text-slate-700',
-    badgeTextColor: 'text-slate-700 border-slate-300',
-    allowedTabs: ['pms', 'crm', 'booking'],
-    description: 'Acceso optimizado para control de huéspedes, calendario PMS Gantt y check-in/out directo.',
-    pin: '5555',
-    pinHint: 'PIN de Front Desk / Recepción',
-    contractedHotelId: 'hotel-2'
-  },
-  {
-    id: 'user-housekeeper',
-    name: 'Carlos Ruiz (Operations Supervisor)',
-    email: 'housekeeper@sinergia.com',
-    avatar: '🧹',
-    role: 'housekeeper',
-    roleLabel: 'Supervisor de Operaciones & Aseo',
-    membershipPlan: 'Sinergia Essential Ops',
-    membershipBadge: 'MEMBRESÍA BRONZE',
-    badgeBg: 'bg-orange-50 border-orange-205 text-orange-850',
-    badgeTextColor: 'text-orange-850 border-orange-200',
-    allowedTabs: ['pms'],
-    description: 'Acceso directo a listas de tareas de limpieza, checklists táctiles y reportes de mantenimiento.',
-    pin: '4444',
-    pinHint: 'PIN de Personal Operativo',
-    contractedHotelId: 'hotel-3'
   }
 ];
 
@@ -168,10 +123,10 @@ export default function App() {
             if (p.id === 'user-admin') {
               return {
                 ...p,
-                name: 'Jose Urdaneta (Administrador Global SaaS / Desarrollador Root)',
-                email: 'admin@sinergia.com',
+                name: 'Jose Gregorio Urdaneta Guadama',
+                email: 'josegregoriourdanetaguadama@gmail.com',
                 pin: '9999',
-                roleLabel: 'Desarrollador SaaS Root / SysAdmin',
+                roleLabel: 'Administrador Global SaaS / Desarrollador Root',
                 membershipPlan: 'SaaS Global Enterprise Dev',
                 membershipBadge: 'ROOT DEVELOPER',
                 allowedTabs: ['pms', 'channels', 'pricing', 'crm', 'booking', 'bi', 'blueprint']
@@ -201,6 +156,7 @@ export default function App() {
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [isFirebaseLoading, setIsFirebaseLoading] = useState<boolean>(true);
 
   // General ERP Database state with LocalStorage persistence to survive soft reloads
   const [hotels, setHotels] = useState<Hotel[]>(() => {
@@ -209,8 +165,86 @@ export default function App() {
   });
 
   useEffect(() => {
+    async function initFirestore() {
+      try {
+        const loadedHotels = await seedCollectionIfEmpty('hotels', INITIAL_HOTELS);
+        setHotels(loadedHotels);
+
+        const loadedRooms = await seedCollectionIfEmpty('rooms', INITIAL_ROOMS);
+        setRooms(loadedRooms);
+
+        let loadedReservations = await seedCollectionIfEmpty('reservations', INITIAL_RESERVATIONS);
+        let loadedGuests = await seedCollectionIfEmpty('guests', INITIAL_GUESTS);
+        let loadedTickets = await seedCollectionIfEmpty('tickets', INITIAL_TICKETS);
+        
+        const loadedChannels = await seedCollectionIfEmpty('channels', INITIAL_CHANNELS);
+        setChannels(loadedChannels);
+
+        const loadedPricingPlans = await seedCollectionIfEmpty('pricingPlans', INITIAL_PRICING_PLANS);
+        setPricingPlans(loadedPricingPlans);
+
+        let loadedHousekeeping = await seedCollectionIfEmpty('housekeepingLogs', housekeepingLogs);
+        let loadedMaintenance = await seedCollectionIfEmpty('maintenanceLogs', maintenanceLogs);
+        let loadedShifts = await seedCollectionIfEmpty('staffShifts', staffShifts);
+
+        // Detect old legacy default simulation data and purge them completely to honor user's directive!
+        const hasLegacyData = loadedReservations.some(r => ['res-1', 'res-2', 'res-3', 'res-4', 'res-5', 'res-6'].includes(r.id)) ||
+                             loadedGuests.some(g => ['guest-1', 'guest-2', 'guest-3', 'guest-4', 'guest-5'].includes(g.id)) ||
+                             loadedHousekeeping.some(h => ['hk-1', 'hk-2'].includes(h.id)) ||
+                             loadedMaintenance.some(m => ['mtl-1', 'mtl-2'].includes(m.id));
+
+        if (hasLegacyData) {
+          console.log("Legacy simulation data detected! Purging to leave a clean production database.");
+          const resIds = loadedReservations.map(r => r.id);
+          const guestIds = loadedGuests.map(g => g.id);
+          const ticketIds = loadedTickets.map(t => t.id);
+          const hkIds = loadedHousekeeping.map(h => h.id);
+          const mtIds = loadedMaintenance.map(m => m.id);
+          const shiftIds = loadedShifts.map(s => s.id);
+
+          await clearCollection('reservations', resIds);
+          await clearCollection('guests', guestIds);
+          await clearCollection('tickets', ticketIds);
+          await clearCollection('housekeepingLogs', hkIds);
+          await clearCollection('maintenanceLogs', mtIds);
+          await clearCollection('staffShifts', shiftIds);
+
+          loadedReservations = [];
+          loadedGuests = [];
+          loadedTickets = [];
+          loadedHousekeeping = [];
+          loadedMaintenance = [];
+          loadedShifts = [];
+
+          localStorage.setItem('sinergia_reservations', JSON.stringify([]));
+          localStorage.setItem('sinergia_guests', JSON.stringify([]));
+          localStorage.setItem('sinergia_tickets', JSON.stringify([]));
+          localStorage.setItem('sinergia_housekeeping_logs', JSON.stringify([]));
+          localStorage.setItem('sinergia_maintenance_logs', JSON.stringify([]));
+          localStorage.setItem('sinergia_staff_shifts', JSON.stringify([]));
+        }
+
+        setReservations(loadedReservations);
+        setGuests(loadedGuests);
+        setTickets(loadedTickets);
+        setHousekeepingLogs(loadedHousekeeping);
+        setMaintenanceLogs(loadedMaintenance);
+        setStaffShifts(loadedShifts);
+      } catch (err) {
+        console.error("Error setting up and loading secure Firestore database layers:", err);
+      } finally {
+        setIsFirebaseLoading(false);
+      }
+    }
+    initFirestore();
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('sinergia_hotels_data', JSON.stringify(hotels));
-  }, [hotels]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('hotels', hotels);
+    }
+  }, [hotels, isFirebaseLoading]);
   const [activeUserProfile, setActiveUserProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('sinergia_user_profile');
     if (saved) {
@@ -222,10 +256,10 @@ export default function App() {
           if (parsed.id === 'user-admin') {
             return {
               ...parsed,
-              name: 'Jose Urdaneta (Administrador Global SaaS / Desarrollador Root)',
-              email: 'admin@sinergia.com',
+              name: 'Jose Gregorio Urdaneta Guadama',
+              email: 'josegregoriourdanetaguadama@gmail.com',
               pin: '9999',
-              roleLabel: 'Desarrollador SaaS Root / SysAdmin',
+              roleLabel: 'Administrador Global SaaS / Desarrollador Root',
               membershipPlan: 'SaaS Global Enterprise Dev',
               membershipBadge: 'ROOT DEVELOPER',
               allowedTabs: ['pms', 'channels', 'pricing', 'crm', 'booking', 'bi', 'blueprint']
@@ -272,7 +306,7 @@ export default function App() {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   
   // Login states
-  const [loginEmail, setLoginEmail] = useState<string>('owner@sinergia.com');
+  const [loginEmail, setLoginEmail] = useState<string>('josegregoriourdanetaguadama@gmail.com');
   const [loginPin, setLoginPin] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -323,87 +357,17 @@ export default function App() {
 
   const [housekeepingLogs, setHousekeepingLogs] = useState<HousekeepingLog[]>(() => {
     const saved = localStorage.getItem('sinergia_housekeeping_logs');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'hk-1',
-        hotelId: 'hotel-1',
-        roomId: 'h1-r2',
-        roomNumber: '102',
-        assignedStaff: 'Diana Ortiz',
-        completedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-        checklistCompleted: ['Sanitizar baño', 'Cambiar toallas', 'Sábanas frescas', 'Minibar surtido']
-      },
-      {
-        id: 'hk-2',
-        hotelId: 'hotel-1',
-        roomId: 'h1-r3',
-        roomNumber: '103',
-        assignedStaff: 'María Inés',
-        completedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-        checklistCompleted: ['Desinfectar baño', 'Cambiar toallas', 'Sábanas frescas']
-      }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [maintenanceLogs, setMaintenanceLogs] = useState<MaintenanceLog[]>(() => {
     const saved = localStorage.getItem('sinergia_maintenance_logs');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'mtl-1',
-        hotelId: 'hotel-1',
-        roomId: 'h1-r4',
-        roomNumber: '104',
-        description: 'Termostato del jacuzzi no mantenía calor superior a los 32 grados.',
-        priority: 'medium',
-        resolvedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-        assignedStaff: 'Ramiro López (Electricista)',
-        repairCost: 45
-      },
-      {
-        id: 'mtl-2',
-        hotelId: 'hotel-1',
-        roomId: 'h1-r1',
-        roomNumber: '101',
-        description: 'Chapa biométrica suelta en puerta principal tras lluvia fuerte.',
-        priority: 'high',
-        resolvedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-        assignedStaff: 'Carlos Gómez (Técnico de Redes)',
-        repairCost: 80
-      }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [staffShifts, setStaffShifts] = useState<StaffShift[]>(() => {
     const saved = localStorage.getItem('sinergia_staff_shifts');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'sh-1',
-        hotelId: 'hotel-1',
-        staffName: 'Yolanda García',
-        role: 'housekeeping',
-        date: '2026-06-19',
-        shiftType: 'Mañana (06:00 - 14:00)',
-        assignedNotes: 'Supervisión de habitaciones VIP'
-      },
-      {
-        id: 'sh-2',
-        hotelId: 'hotel-1',
-        staffName: 'Carlos Gómez (Soporte Interno)',
-        role: 'maintenance',
-        date: '2026-06-19',
-        shiftType: 'Tarde (14:00 - 22:00)',
-        assignedNotes: 'Revisión técnica de Caldera'
-      },
-      {
-        id: 'sh-3',
-        hotelId: 'hotel-1',
-        staffName: 'Diana Ortiz',
-        role: 'housekeeping',
-        date: '2026-06-20',
-        shiftType: 'Mañana (06:00 - 14:00)',
-        assignedNotes: 'Limpieza de áreas comunes'
-      }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [newShiftStaffName, setNewShiftStaffName] = useState('Yolanda García');
@@ -414,7 +378,7 @@ export default function App() {
   const [selectedCalendarDateFilter, setSelectedCalendarDateFilter] = useState('2026-06-19');
 
   // UI state
-  const [activeTab, setActiveTab] = useState<'pms' | 'channels' | 'pricing' | 'crm' | 'booking' | 'bi' | 'blueprint' | 'config'>('pms');
+  const [activeTab, setActiveTab] = useState<'pms' | 'channels' | 'pricing' | 'crm' | 'booking' | 'bi' | 'blueprint' | 'config' | 'saas' | 'community'>('pms');
   const [activeAgent, setActiveAgent] = useState<AgentRole>('receptionist');
   const [chatInput, setChatInput] = useState('');
   
@@ -506,57 +470,90 @@ export default function App() {
   // OTA Channel Interactive States
   const [isOTASyncing, setIsOTASyncing] = useState(false);
 
-  // Sync state to local storage
+  // Sync state to local storage and Firestore database
   useEffect(() => {
     localStorage.setItem('sinergia_hotel_id', currentHotelId);
   }, [currentHotelId]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_rooms', JSON.stringify(rooms));
-  }, [rooms]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('rooms', rooms);
+    }
+  }, [rooms, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_reservations', JSON.stringify(reservations));
-  }, [reservations]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('reservations', reservations);
+    }
+  }, [reservations, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_guests', JSON.stringify(guests));
-  }, [guests]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('guests', guests);
+    }
+  }, [guests, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_tickets', JSON.stringify(tickets));
-  }, [tickets]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('tickets', tickets);
+    }
+  }, [tickets, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_channels', JSON.stringify(channels));
-  }, [channels]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('channels', channels);
+    }
+  }, [channels, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_pricing_plans', JSON.stringify(pricingPlans));
-  }, [pricingPlans]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('pricingPlans', pricingPlans);
+    }
+  }, [pricingPlans, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_housekeeping_logs', JSON.stringify(housekeepingLogs));
-  }, [housekeepingLogs]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('housekeepingLogs', housekeepingLogs);
+    }
+  }, [housekeepingLogs, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_maintenance_logs', JSON.stringify(maintenanceLogs));
-  }, [maintenanceLogs]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('maintenanceLogs', maintenanceLogs);
+    }
+  }, [maintenanceLogs, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_staff_shifts', JSON.stringify(staffShifts));
-  }, [staffShifts]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('staffShifts', staffShifts);
+    }
+  }, [staffShifts, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_chat', JSON.stringify(chatHistory));
-  }, [chatHistory]);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('messages', chatHistory);
+    }
+  }, [chatHistory, isFirebaseLoading]);
 
   useEffect(() => {
     localStorage.setItem('sinergia_user_profile', activeUserProfile.id);
+    if (!isFirebaseLoading) {
+      saveCollectionBulk('profiles', [activeUserProfile]);
+    }
     if (activeUserProfile && activeUserProfile.contractedHotelId) {
       setCurrentHotelId(activeUserProfile.contractedHotelId);
     }
-  }, [activeUserProfile]);
+  }, [activeUserProfile, isFirebaseLoading]);
 
 
   // Scroll to bottom of chat
@@ -782,8 +779,16 @@ export default function App() {
   };
 
   // Pricing plans helpers
-  const handleClearDemoData = () => {
+  const handleClearDemoData = async () => {
     // Purge active ledgers & simulated data
+    const resIds = reservations.map(r => r.id);
+    const guestIds = guests.map(g => g.id);
+    const ticketIds = tickets.map(t => t.id);
+    const hkIds = housekeepingLogs.map(h => h.id);
+    const mtIds = maintenanceLogs.map(m => m.id);
+    const shiftIds = staffShifts.map(s => s.id);
+    const chatIds = chatHistory.map(m => m.id);
+
     setReservations([]);
     setGuests([]);
     setTickets([]);
@@ -811,6 +816,21 @@ export default function App() {
     localStorage.setItem('sinergia_maintenance_logs', JSON.stringify([]));
     localStorage.setItem('sinergia_staff_shifts', JSON.stringify([]));
     localStorage.setItem('sinergia_chat', JSON.stringify(freshChat));
+
+    // Async clear on FireStore database
+    try {
+      await clearCollection('reservations', resIds);
+      await clearCollection('guests', guestIds);
+      await clearCollection('tickets', ticketIds);
+      await clearCollection('housekeepingLogs', hkIds);
+      await clearCollection('maintenanceLogs', mtIds);
+      await clearCollection('staffShifts', shiftIds);
+      await clearCollection('messages', chatIds);
+      // Re-seed chat with the empty/welcome message
+      await saveCollectionBulk('messages', freshChat);
+    } catch (e) {
+      console.error("Error purging cloud collections:", e);
+    }
 
     alert('¡Limpieza completada! Se han eliminado todos los datos de demostración de manera segura. El PMS, CRM y Mantenimiento ahora están listos para producción.');
   };
@@ -1132,6 +1152,26 @@ export default function App() {
     setSignupPin('');
     setSignupError(null);
   };
+
+  if (isFirebaseLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center font-sans antialiased text-slate-300 p-4 relative overflow-hidden">
+        {/* Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none animate-pulse"></div>
+        <div className="space-y-6 text-center z-10 flex flex-col items-center">
+          <SinergiaLogo isDark={true} showSubtitle={true} className="flex items-center gap-2.5 text-2xl font-black text-white tracking-tight" />
+          
+          <div className="flex flex-col items-center gap-2 mt-4">
+            <div className="w-9 h-9 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+            <p className="text-[10px] text-indigo-400 font-mono tracking-widest uppercase mt-4">Sinergia Cloud Storage Sync</p>
+            <p className="text-[10px] text-slate-400 max-w-sm mt-1 leading-relaxed text-center">
+              Cargando registros PMS síncronos, canales OTA, calibraciones de tarifa dinámica y bitácoras operativas desde la base de datos real en la nube...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     const activeSelectedProfile = profiles.find(p => p.email.toLowerCase() === loginEmail.trim().toLowerCase()) || profiles.find(p => p.role === 'owner') || profiles[0];;
@@ -1477,7 +1517,7 @@ export default function App() {
                     {/* Hotel to Contract Selector */}
                     <div className="space-y-1 text-left">
                       <label htmlFor="reg-hotel" className="text-[10px] uppercase font-mono tracking-wider font-extrabold text-slate-400">
-                        Inmueble / Empresa a Contratar
+                        Sede / Hotel a Contratar
                       </label>
                       <div className="relative">
                         <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
@@ -1491,7 +1531,7 @@ export default function App() {
                         >
                           {hotels.map(h => (
                             <option key={h.id} value={h.id} className="bg-slate-950 text-white">
-                              {h.name} ({h.type === 'glamping' ? 'Glamping' : h.type === 'apartment' ? 'Apartamentos' : h.type === 'finca' ? 'Finca' : 'Hostal'})
+                              {h.name} ({h.type})
                             </option>
                           ))}
                         </select>
@@ -1659,7 +1699,7 @@ export default function App() {
               <Building2 className={`w-3.5 h-3.5 text-slate-500 mr-2 shrink-0 ${activeUserProfile.role === 'admin' ? 'animate-pulse text-indigo-650' : ''}`} />
               <div className="flex flex-col text-left">
                 <span className="text-[8px] font-mono text-slate-400 uppercase leading-none font-extrabold tracking-wider">
-                  {activeUserProfile.role === 'admin' ? 'Área Global SysAdmin' : 'Empresa Contratada'}
+                  {activeUserProfile.role === 'admin' ? 'Área Global SysAdmin' : 'Sede Contratada'}
                 </span>
                 {activeUserProfile.role === 'admin' ? (
                   <select
@@ -1884,7 +1924,20 @@ export default function App() {
                     : 'hover:bg-slate-150/60 hover:text-slate-800'
                 }`}
               >
-                ⚙️ Config Empresa
+                ⚙️ Config Hotel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('community')}
+                className={`px-3.5 py-1.5 rounded-lg transition-all outline-hidden cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  activeTab === 'community' 
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/10' 
+                    : 'hover:bg-slate-150/60 hover:text-slate-800'
+                }`}
+              >
+                👥 Red de Comunidad
+                <span className="text-[8px] bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1 font-mono font-bold leading-none py-0.5 animate-pulse">VIVO</span>
               </button>
 
               <button
@@ -3356,6 +3409,14 @@ export default function App() {
               setProfiles={setProfiles}
               rooms={rooms}
               reservations={reservations}
+            />
+          )}
+
+          {activeTab === 'community' && (
+            <SinergiaCommunityPanel 
+              currentHotelId={currentHotelId}
+              hotels={hotels}
+              activeUserProfile={activeUserProfile}
             />
           )}
             </>
