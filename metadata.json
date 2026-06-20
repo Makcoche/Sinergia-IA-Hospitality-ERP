@@ -1,0 +1,6 @@
+{
+  "name": "Sinergia IA Hospitality ERP",
+  "description": "Plataforma SaaS para la gestión de hoteles, glampings y apartamentos, impulsada por inteligencia artificial multi-agente de Google Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
